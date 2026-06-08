@@ -1,14 +1,14 @@
-# Entorno virtual - NUNCA subir a Git
+# Entorno virtual
 venv/
+.venv/
 
-
-# Archivos compilados de Python (se generan automáticamente)
+# Archivos compilados de Python
 __pycache__/
 *.py[cod]
 
 # IDE
 .vscode/
 .idea/
-.env
 
-certs/jwt_public.pem
+# Variables de entorno
+.env

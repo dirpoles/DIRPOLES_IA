@@ -1,81 +1,57 @@
 """
-Conexión a la base de datos MySQL.
-Usa SQLAlchemy para crear una conexión reutilizable.
-
-Equivalente a: DIRPOLES_4/app/Core/Database.php
+Conexión a las bases de datos MySQL.
+Soporta dos bases de datos: dirpoles_business y dirpoles_security.
 """
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
-from app.config import DATABASE_URL
+from app.config import DATABASE_URL, DATABASE_SECURITY_URL
 
-# Crear el "motor" de conexión
-# pool_recycle=3600: reconecta automáticamente después de 1 hora
-#   (evita que MySQL cierre conexiones inactivas)
-# echo=False: no imprime las consultas SQL en la terminal (cámbialo a True para debug)
-engine = create_engine(
-    DATABASE_URL,
-    pool_recycle=3600,
-    echo=False
-)
+# ============================================================
+# Motor y sesión para dirpoles_business (BD principal)
+# ============================================================
+engine = create_engine(DATABASE_URL, pool_recycle=3600, echo=False)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Crear una "fábrica" de sesiones (conexiones a la BD)
-# Cada sesión es como hacer: new PDO(...) en tu PHP
-SessionLocal = sessionmaker(
-    autocommit=False,
-    autoflush=False,
-    bind=engine
-)
+# ============================================================
+# Motor y sesión para dirpoles_security
+# ============================================================
+engine_security = create_engine(DATABASE_SECURITY_URL, pool_recycle=3600, echo=False)
+SessionSecurity = sessionmaker(autocommit=False, autoflush=False, bind=engine_security)
 
 
 def get_db():
-    """
-    Función generadora que crea una sesión de base de datos
-    y la cierra automáticamente al terminar.
-
-    En PHP, tú creas la conexión en el constructor de Database.php
-    y la cierras manualmente (o PHP la cierra al terminar el script).
-
-    En FastAPI, usamos esta función como "dependencia" que se inyecta
-    automáticamente en cada endpoint que necesite la base de datos.
-
-    Uso en un endpoint:
-        @router.get("/datos")
-        def obtener_datos(db: Session = Depends(get_db)):
-            resultado = db.execute(text("SELECT * FROM beneficiario"))
-            return resultado.fetchall()
-    """
+    """Genera una sesión de dirpoles_business y la cierra al terminar."""
     db = SessionLocal()
     try:
-        yield db  # "yield" pausa aquí y entrega la sesión al endpoint
+        yield db
     finally:
-        db.close()  # Cuando el endpoint termina, se cierra la conexión
+        db.close()
 
 
-def ejecutar_consulta(consulta_sql: str, parametros: dict = None):
+def get_db_security():
+    """Genera una sesión de dirpoles_security y la cierra al terminar."""
+    db = SessionSecurity()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+def ejecutar_consulta(consulta_sql: str, parametros: dict = None, base="business"):
     """
-    Función de utilidad para ejecutar consultas SQL directamente.
-    Similar a como tu PHP usa $stmt = $this->conn->prepare($query);
+    Ejecuta una consulta SQL y retorna una lista de diccionarios.
 
     Parámetros:
         consulta_sql: La consulta SQL como string
         parametros: Diccionario con los parámetros (para consultas preparadas)
-
-    Retorna:
-        Lista de diccionarios con los resultados
-
-    Ejemplo de uso:
-        datos = ejecutar_consulta(
-            "SELECT * FROM beneficiario WHERE cedula = :cedula",
-            {"cedula": "V-12345678"}
-        )
+        base: "business" para dirpoles_business, "security" para dirpoles_security
     """
-    db = SessionLocal()
+    Session = SessionLocal if base == "business" else SessionSecurity
+    db = Session()
     try:
         resultado = db.execute(text(consulta_sql), parametros or {})
-        # .mappings() convierte cada fila en un diccionario {columna: valor}
         filas = resultado.mappings().all()
-        # Convertir a lista de diccionarios normales
         return [dict(fila) for fila in filas]
     except Exception as e:
         raise e
