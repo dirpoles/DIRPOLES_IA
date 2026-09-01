@@ -142,7 +142,7 @@ cp .env.example .env
 | `DB_PORT` | `3306` | Puerto de MySQL |
 | `DB_NAME` | `dirpoles_business` | Base de datos principal |
 | `DB_USER` | `root` | Usuario MySQL |
-| `DB_PASS` | *(vacío)* | Contraseña MySQL |
+| `DB_PASS` | *(vacío)* | Contraseña MySQL (dejar vacío si no tiene) |
 | `IA_API_KEY` | *(vacío)* | Clave API para autenticación con DIRPOLES_4 |
 | `GEMINI_API_KEY` | *(vacío)* | API Key de Google AI Studio |
 | `SERVER_HOST` | `0.0.0.0` | IP de escucha |
@@ -153,30 +153,191 @@ cp .env.example .env
 
 ## 🚀 Instalación y Ejecución
 
+> ⚠️ **Prerequisito:** Tener Python 3.12+ instalado. Verificar con `python3 --version` (Linux) o `python --version` (Windows).
+
+### 🐧 Linux (Ubuntu / Debian)
+
+#### Paso 1 — Instalar Python 3.12 (si no lo tienes)
+
 ```bash
-# 1. Clonar
+sudo apt update
+sudo apt install python3.12 python3.12-venv python3-pip -y
+```
+
+> El paquete `python3.12-venv` es **obligatorio**. Sin él, el comando `python3 -m venv` fallará.
+
+Verifica la instalación:
+
+```bash
+python3 --version
+# Debe mostrar: Python 3.12.x
+```
+
+#### Paso 2 — Clonar el repositorio
+
+```bash
 git clone https://github.com/dirpoles/DIRPOLES_IA.git
 cd DIRPOLES_IA
+```
 
-# 2. Entorno virtual
-python -m venv venv
-# Windows:
-venv\Scripts\activate
-# Linux/Mac:
+#### Paso 3 — Crear el entorno virtual
+
+```bash
+python3 -m venv venv
+```
+
+#### Paso 4 — Activar el entorno virtual
+
+```bash
 source venv/bin/activate
+```
 
-# 3. Dependencias
+> Al activarlo verás `(venv)` al inicio de la línea de la terminal. **Siempre** debes tener esto activo antes de ejecutar comandos del proyecto.
+
+#### Paso 5 — Instalar dependencias
+
+```bash
 pip install -r requirements.txt
+```
 
-# 4. Configurar entorno
+#### Paso 6 — Configurar variables de entorno
+
+```bash
 cp .env.example .env
-# Editar .env con tus credenciales reales
+```
 
-# 5. Ejecutar
+Edita el archivo `.env` con tus datos reales:
+
+```bash
+nano .env
+```
+
+> Usa `Ctrl + X`, luego `Y`, luego `Enter` para guardar y salir.
+
+#### Paso 7 — Arrancar el servidor
+
+```bash
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-El servicio estará disponible en `http://localhost:8000`
+#### Paso 8 — Verificar que funciona
+
+Abre otra terminal (manteniendo el servidor corriendo) y ejecuta:
+
+```bash
+# Health check
+curl http://localhost:8000/
+
+# Deberías ver:
+# {"estado":"activo","servicio":"DIRPOLES IA","version":"2.0.0",...}
+```
+
+O abre el navegador en:
+
+- **Health check:** `http://localhost:8000/`
+- **Documentación Swagger:** `http://localhost:8000/docs`
+
+---
+
+### 🪟 Windows
+
+#### Paso 1 — Instalar Python 3.12 (si no lo tienes)
+
+1. Ve a [https://www.python.org/downloads/](https://www.python.org/downloads/)
+2. Descarga Python 3.12 (no uses 3.13)
+3. **IMPORTANTE:** Marca la casilla **☑ "Add Python to PATH"** durante la instalación
+4. Haz clic en "Install Now"
+
+Verifica en **PowerShell**:
+
+```powershell
+python --version
+# Debe mostrar: Python 3.12.x
+```
+
+#### Paso 2 — Clonar el repositorio
+
+```powershell
+git clone https://github.com/dirpoles/DIRPOLES_IA.git
+cd DIRPOLES_IA
+```
+
+#### Paso 3 — Crear el entorno virtual
+
+```powershell
+python -m venv venv
+```
+
+#### Paso 4 — Activar el entorno virtual
+
+```powershell
+.\venv\Scripts\Activate.ps1
+```
+
+> Al activarlo verás `(venv)` al inicio de la línea.
+
+> ⚠️ **Si ves un error de políticas de ejecución**, ejecuta esto primero (una sola vez como administrador):
+> ```powershell
+> Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+> ```
+
+#### Paso 5 — Instalar dependencias
+
+```powershell
+pip install -r requirements.txt
+```
+
+#### Paso 6 — Configurar variables de entorno
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Edita el archivo `.env` con un editor de texto (Notepad, VS Code, etc.) y pon tus datos reales.
+
+#### Paso 7 — Arrancar el servidor
+
+```powershell
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+#### Paso 8 — Verificar que funciona
+
+Abre otra ventana de PowerShell y ejecuta:
+
+```powershell
+curl http://localhost:8000/
+```
+
+O abre el navegador en:
+
+- **Health check:** `http://localhost:8000/`
+- **Documentación Swagger:** `http://localhost:8000/docs`
+
+---
+
+### ✅ Señales de que todo funciona
+
+| Prueba | Comando | Resultado esperado |
+|--------|---------|-------------------|
+| Health check básico | `curl http://localhost:8000/` | `{"estado":"activo","servicio":"DIRPOLES IA",...}` |
+| Health check con BD | `curl http://localhost:8000/health` | `"base_de_datos":"conectada"` |
+| Tipos de reportes | `curl http://localhost:8000/api/v1/tipos-reportes` | Lista de 10 tipos con `"exito":true` |
+| Documentación Swagger | Abrir `http://localhost:8000/docs` | Interfaz visual de la API |
+
+> Si `"base_de_datos"` muestra un error, verifica que MySQL esté corriendo y que las credenciales en `.env` sean correctas.
+
+---
+
+### 🔴 Si el servidor no arranca
+
+| Error | Solución |
+|-------|----------|
+| `command not found: python` | En Linux usa `python3` en vez de `python` |
+| `ensurepip is not available` | Ejecuta: `sudo apt install python3.12-venv` |
+| `No module named 'fastapi'` | Asegúrate de tener el entorno virtual activado (`source venv/bin/activate`) |
+| `Access denied for user 'root'` | Verifica la contraseña en `.env` (DB_PASS) |
+| `GEMINI_API_KEY no está configurada` | Agrega tu API key de Google AI Studio en `.env` |
 
 ---
 
